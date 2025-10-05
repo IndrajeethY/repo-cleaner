@@ -3,7 +3,13 @@ import icon from "@/assets/icon.png";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 
 interface SetupPageProps {
@@ -17,7 +23,7 @@ export function SetupPage({ onSetupComplete }: SetupPageProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!username.trim() || !token.trim()) {
       toast({
         title: "Missing credentials",
@@ -30,7 +36,7 @@ export function SetupPage({ onSetupComplete }: SetupPageProps) {
     localStorage.setItem("github_username", username);
     localStorage.setItem("github_token", token);
     onSetupComplete(username, token);
-    
+
     toast({
       title: "Credentials saved",
       description: "Your GitHub credentials have been stored securely",
@@ -41,11 +47,11 @@ export function SetupPage({ onSetupComplete }: SetupPageProps) {
     <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-background via-background to-muted/20">
       <Card className="w-full max-w-md shadow-lg border-border/50">
         <CardHeader className="space-y-3 text-center">
-            <img
-              src={icon}
-              alt="App Icon"
-              className="mx-auto w-16 h-16 rounded-2xl shadow-glow object-cover bg-gradient-to-br from-primary to-accent"
-            />
+          <img
+            src={icon}
+            alt="App Icon"
+            className="mx-auto w-16 h-16 rounded-2xl shadow-glow object-cover bg-gradient-to-br from-primary to-accent"
+          />
           <CardTitle className="text-3xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
             Repo Cleaner
           </CardTitle>

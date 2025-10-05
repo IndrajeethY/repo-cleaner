@@ -1,6 +1,12 @@
 import { GitFork, Star, Trash2, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
 interface Repository {
@@ -38,9 +44,13 @@ export function RepoCard({ repo, onDelete }: RepoCardProps) {
               </a>
             </CardTitle>
             <div className="flex items-center gap-2 mt-1.5">
-              <Badge 
-                variant={repo.private ? "secondary" : "outline"} 
-                className={repo.private ? "text-xs" : "text-xs border-primary/30 text-primary"}
+              <Badge
+                variant={repo.private ? "secondary" : "outline"}
+                className={
+                  repo.private
+                    ? "text-xs"
+                    : "text-xs border-primary/30 text-primary"
+                }
               >
                 {repo.private ? "Private" : "Public"}
               </Badge>

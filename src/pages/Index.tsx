@@ -12,7 +12,7 @@ const Index = () => {
   useEffect(() => {
     const username = localStorage.getItem("github_username");
     const token = localStorage.getItem("github_token");
-    
+
     if (username && token) {
       setCredentials({ username, token });
     }

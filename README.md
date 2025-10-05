@@ -19,30 +19,31 @@ Repo Cleaner is a React web app for managing and cleaning up your GitHub reposit
 ## Installation
 
 1. **Clone the repository:**
-    ```bash
-    git clone https://github.com/IndrajeethY/repo-cleaner.git
-    cd repo-cleaner
-    ```
+
+   ```bash
+   git clone https://github.com/IndrajeethY/repo-cleaner.git
+   cd repo-cleaner
+   ```
 
 2. **Install dependencies:**
-    ```bash
-    npm install
-    # or
-    yarn install
-    ```
+   ```bash
+   npm install
+   # or
+   yarn install
+   ```
 
 ## Configuration
 
 1. **Generate a GitHub Personal Access Token:**
-    - Go to [GitHub Settings > Developer settings > Personal access tokens](https://github.com/settings/tokens)
-    - Generate a token with `repo` scope.
+   - Go to [GitHub Settings > Developer settings > Personal access tokens](https://github.com/settings/tokens)
+   - Generate a token with `repo` scope.
 
 2. **Start the app:**
-    ```bash
-    npm start
-    # or
-    yarn start
-    ```
+   ```bash
+   npm start
+   # or
+   yarn start
+   ```
 
 ## Usage
 
@@ -70,4 +71,3 @@ Repo Cleaner is a React web app for managing and cleaning up your GitHub reposit
 ## License
 
 MIT License
-
