@@ -25,6 +25,12 @@ import {
 } from "@/components/ui/pagination";
 import { useToast } from "@/hooks/use-toast";
 
+interface RepoOwner {
+  login: string;
+  avatar_url?: string;
+  html_url?: string;
+}
+
 interface Repository {
   id: number;
   name: string;
@@ -35,6 +41,7 @@ interface Repository {
   forks_count: number;
   language: string | null;
   private: boolean;
+  owner: RepoOwner;
 }
 
 interface DashboardProps {
@@ -78,13 +85,12 @@ export function Dashboard({ username, token, onLogout }: DashboardProps) {
 
   useEffect(() => {
     if (!token) return;
-
     const controller = new AbortController();
-
-    const fetchAll = async () => {
+    const fetchAllSequential = async () => {
       setLoading(true);
       try {
-        await Promise.all([fetchUserProfile(controller.signal), fetchRepos(controller.signal)]);
+        await fetchUserProfile(controller.signal);
+        await fetchRepos(controller.signal);
       } catch (err) {
         if (!(err instanceof DOMException && err.name === "AbortError")) {
           toast({
@@ -97,25 +103,26 @@ export function Dashboard({ username, token, onLogout }: DashboardProps) {
         setLoading(false);
       }
     };
-
-    fetchAll();
-
+    fetchAllSequential();
     return () => {
       controller.abort();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
   useEffect(() => {
-    const filtered = repos.filter(
-      (repo) =>
-        repo.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        repo.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        repo.language?.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-    setFilteredRepos(filtered);
+    const q = searchQuery.trim().toLowerCase();
+    let items = repos;
+    if (q) {
+      items = items.filter(
+        (repo) =>
+          repo.name.toLowerCase().includes(q) ||
+          repo.description?.toLowerCase().includes(q) ||
+          repo.language?.toLowerCase().includes(q)
+      );
+    }
+    setFilteredRepos(items);
     setCurrentPage(1);
-  }, [searchQuery, repos]);
+  }, [searchQuery, repos, userProfile]);
 
   const fetchUserProfile = async (signal?: AbortSignal) => {
     try {
@@ -126,11 +133,9 @@ export function Dashboard({ username, token, onLogout }: DashboardProps) {
         },
         signal,
       });
-
       if (!response.ok) {
         throw new Error(`Failed to fetch user profile: ${response.status} ${response.statusText}`);
       }
-
       const data = await response.json();
       setUserProfile({
         name: data.name,
@@ -151,9 +156,8 @@ export function Dashboard({ username, token, onLogout }: DashboardProps) {
     setLoading(true);
     try {
       const perPage = 100;
-      let url = `https://api.github.com/user/repos?per_page=${perPage}&sort=updated`;
+      let url = `https://api.github.com/user/repos?per_page=${perPage}&sort=updated&type=owner`;
       const allRepos: Repository[] = [];
-
       while (url) {
         const response = await fetch(url, {
           headers: {
@@ -162,23 +166,18 @@ export function Dashboard({ username, token, onLogout }: DashboardProps) {
           },
           signal,
         });
-
         if (!response.ok) {
           throw new Error(`Failed to fetch repositories: ${response.status} ${response.statusText}`);
         }
-
         const data = await response.json();
         if (!Array.isArray(data)) {
           throw new Error("Unexpected response shape from GitHub API");
         }
-
         allRepos.push(...data);
-
         const linkHeader = response.headers.get("link");
         const next = getNextUrlFromLink(linkHeader);
         url = next;
       }
-
       setRepos(allRepos);
       setFilteredRepos(allRepos);
     } catch (error) {
@@ -195,7 +194,6 @@ export function Dashboard({ username, token, onLogout }: DashboardProps) {
 
   const handleDeleteRepo = async () => {
     if (!deleteRepo) return;
-
     setDeleting(true);
     try {
       const response = await fetch(`https://api.github.com/repos/${deleteRepo.full_name}`, {
@@ -205,18 +203,14 @@ export function Dashboard({ username, token, onLogout }: DashboardProps) {
           Accept: "application/vnd.github.v3+json",
         },
       });
-
       if (!response.ok) {
         let errMsg = `Failed to delete repository: ${response.status} ${response.statusText}`;
         try {
           const body = await response.json();
           if (body && body.message) errMsg += ` — ${body.message}`;
-        } catch {
-          /* ignore */
-        }
+        } catch {}
         throw new Error(errMsg);
       }
-
       setRepos((prev) => prev.filter((r) => r.id !== deleteRepo.id));
       toast({
         title: "Repository deleted",
@@ -241,11 +235,9 @@ export function Dashboard({ username, token, onLogout }: DashboardProps) {
   const getPageNumbers = () => {
     const pages: (number | "ellipsis")[] = [];
     const showPages = 5;
-
     if (totalPages <= showPages) {
       return Array.from({ length: totalPages }, (_, i) => i + 1);
     }
-
     if (currentPage <= 3) {
       for (let i = 1; i <= 4; i++) pages.push(i);
       pages.push("ellipsis");
@@ -261,7 +253,6 @@ export function Dashboard({ username, token, onLogout }: DashboardProps) {
       pages.push("ellipsis");
       pages.push(totalPages);
     }
-
     return pages;
   };
 
@@ -274,11 +265,7 @@ export function Dashboard({ username, token, onLogout }: DashboardProps) {
               <div className="relative shrink-0">
                 <div className="absolute inset-0 bg-gradient-to-br from-primary to-accent rounded-2xl blur-md opacity-50" />
                 <div className="relative w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-primary to-accent rounded-2xl flex items-center justify-center shadow-lg overflow-hidden">
-                  <img
-                    src="/src/assets/icon.png"
-                    alt="Repo Cleaner"
-                    className="w-full h-full object-cover"
-                  />
+                  <img src="/src/assets/icon.png" alt="Repo Cleaner" className="w-full h-full object-cover" />
                 </div>
               </div>
               <div className="min-w-0">
@@ -289,9 +276,7 @@ export function Dashboard({ username, token, onLogout }: DashboardProps) {
                   <div className="flex items-center gap-1.5 sm:gap-2 mt-0.5">
                     <Avatar className="w-4 h-4 sm:w-5 sm:h-5 border border-primary/20">
                       <AvatarImage src={userProfile.avatar_url} alt={userProfile.login} />
-                      <AvatarFallback className="text-xs">
-                        {userProfile.login ? userProfile.login[0].toUpperCase() : "U"}
-                      </AvatarFallback>
+                      <AvatarFallback className="text-xs">{userProfile.login ? userProfile.login[0].toUpperCase() : "U"}</AvatarFallback>
                     </Avatar>
                     <p className="text-xs sm:text-sm font-medium text-foreground truncate">
                       {userProfile.name || userProfile.login}
@@ -302,12 +287,7 @@ export function Dashboard({ username, token, onLogout }: DashboardProps) {
             </div>
             <div className="flex items-center gap-2 shrink-0">
               <ThemeToggle />
-              <Button
-                variant="outline"
-                onClick={onLogout}
-                size="sm"
-                className="gap-2 hover:bg-destructive/10 hover:text-destructive hover:border-destructive/50 transition-all"
-              >
+              <Button variant="outline" onClick={onLogout} size="sm" className="gap-2 hover:bg-destructive/10 hover:text-destructive hover:border-destructive/50 transition-all">
                 <LogOut className="w-4 h-4" />
                 <span className="hidden sm:inline">Logout</span>
               </Button>
@@ -347,17 +327,9 @@ export function Dashboard({ username, token, onLogout }: DashboardProps) {
 
               <div className="relative max-w-md">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search repositories..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 pr-10 h-11"
-                />
+                <Input placeholder="Search repositories..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-10 pr-10 h-11" />
                 {searchQuery && (
-                  <button
-                    onClick={() => setSearchQuery("")}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                  >
+                  <button onClick={() => setSearchQuery("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
                     <X className="w-4 h-4" />
                   </button>
                 )}
@@ -368,9 +340,7 @@ export function Dashboard({ username, token, onLogout }: DashboardProps) {
               <div className="text-center py-20">
                 <Search className="w-16 h-16 mx-auto text-muted-foreground/50 mb-4" />
                 <h2 className="text-2xl font-semibold mb-2">No results found</h2>
-                <p className="text-muted-foreground">
-                  Try adjusting your search to find what you're looking for
-                </p>
+                <p className="text-muted-foreground">Try adjusting your search</p>
                 <Button variant="outline" onClick={() => setSearchQuery("")} className="mt-4">
                   Clear search
                 </Button>
@@ -379,7 +349,7 @@ export function Dashboard({ username, token, onLogout }: DashboardProps) {
               <>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-8">
                   {paginatedRepos.map((repo) => (
-                    <RepoCard key={repo.id} repo={repo} onDelete={setDeleteRepo} />
+                    <RepoCard key={repo.id} repo={repo} onDelete={() => setDeleteRepo(repo)} />
                   ))}
                 </div>
 
@@ -387,14 +357,7 @@ export function Dashboard({ username, token, onLogout }: DashboardProps) {
                   <Pagination>
                     <PaginationContent className="flex-wrap">
                       <PaginationItem>
-                        <PaginationPrevious
-                          onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                          className={
-                            currentPage === 1
-                              ? "pointer-events-none opacity-50"
-                              : "cursor-pointer"
-                          }
-                        />
+                        <PaginationPrevious onClick={() => setCurrentPage((p) => Math.max(1, p - 1))} className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"} />
                       </PaginationItem>
                       {getPageNumbers().map((page, i) =>
                         page === "ellipsis" ? (
@@ -403,25 +366,14 @@ export function Dashboard({ username, token, onLogout }: DashboardProps) {
                           </PaginationItem>
                         ) : (
                           <PaginationItem key={page}>
-                            <PaginationLink
-                              onClick={() => setCurrentPage(page as number)}
-                              isActive={currentPage === page}
-                              className="cursor-pointer"
-                            >
+                            <PaginationLink onClick={() => setCurrentPage(page as number)} isActive={currentPage === page} className="cursor-pointer">
                               {page}
                             </PaginationLink>
                           </PaginationItem>
                         )
                       )}
                       <PaginationItem>
-                        <PaginationNext
-                          onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                          className={
-                            currentPage === totalPages
-                              ? "pointer-events-none opacity-50"
-                              : "cursor-pointer"
-                          }
-                        />
+                        <PaginationNext onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))} className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"} />
                       </PaginationItem>
                     </PaginationContent>
                   </Pagination>
@@ -432,27 +384,17 @@ export function Dashboard({ username, token, onLogout }: DashboardProps) {
         )}
       </main>
 
-      <AlertDialog
-        open={!!deleteRepo}
-        onOpenChange={(open) => {
-          if (!open && !deleting) setDeleteRepo(null);
-        }}
-      >
+      <AlertDialog open={!!deleteRepo} onOpenChange={(open) => { if (!open && !deleting) setDeleteRepo(null); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Repository</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete <strong>{deleteRepo?.name}</strong>? This action
-              cannot be undone and will permanently remove the repository and all its contents.
+              Are you sure you want to delete <strong>{deleteRepo?.name}</strong>? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDeleteRepo}
-              disabled={deleting}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
+            <AlertDialogAction onClick={handleDeleteRepo} disabled={deleting} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
               {deleting ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
