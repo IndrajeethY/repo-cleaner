@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Github } from "lucide-react";
+import icon from "@/assets/icon.png";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -42,7 +42,7 @@ export function SetupPage({ onSetupComplete }: SetupPageProps) {
       <Card className="w-full max-w-md shadow-lg border-border/50">
         <CardHeader className="space-y-3 text-center">
             <img
-              src="/src/assets/icon.png"
+              src={icon}
               alt="App Icon"
               className="mx-auto w-16 h-16 rounded-2xl shadow-glow object-cover bg-gradient-to-br from-primary to-accent"
             />

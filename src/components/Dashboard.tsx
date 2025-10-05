@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import icon from "@/assets/icon.png";
 import { Github, LogOut, Loader2, Sparkles, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -265,7 +266,7 @@ export function Dashboard({ username, token, onLogout }: DashboardProps) {
               <div className="relative shrink-0">
                 <div className="absolute inset-0 bg-gradient-to-br from-primary to-accent rounded-2xl blur-md opacity-50" />
                 <div className="relative w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-primary to-accent rounded-2xl flex items-center justify-center shadow-lg overflow-hidden">
-                  <img src="/src/assets/icon.png" alt="Repo Cleaner" className="w-full h-full object-cover" />
+                  <img src={icon} alt="Repo Cleaner" className="w-full h-full object-cover" />
                 </div>
               </div>
               <div className="min-w-0">
