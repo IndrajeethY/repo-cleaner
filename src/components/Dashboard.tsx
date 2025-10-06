@@ -1,9 +1,16 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import icon from "@/assets/icon.png";
-import { Github, LogOut, Loader2, Sparkles, Search, X } from "lucide-react";
+import { Github, LogOut, Loader2, Sparkles, Search, X, Filter, ArrowUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { RepoCard } from "./RepoCard";
 import { ThemeToggle } from "./ThemeToggle";
 import {
@@ -43,6 +50,8 @@ interface Repository {
   language: string | null;
   private: boolean;
   owner: RepoOwner;
+  fork: boolean;
+  updated_at: string;
 }
 
 interface DashboardProps {
@@ -61,14 +70,26 @@ const REPOS_PER_PAGE = 12;
 
 export function Dashboard({ username, token, onLogout }: DashboardProps) {
   const [repos, setRepos] = useState<Repository[]>([]);
-  const [filteredRepos, setFilteredRepos] = useState<Repository[]>([]);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [deleteRepo, setDeleteRepo] = useState<Repository | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [visibilityFilter, setVisibilityFilter] = useState<"all" | "public" | "private">("all");
+  const [forkFilter, setForkFilter] = useState<"all" | "source" | "forks">("all");
+  const [languageFilter, setLanguageFilter] = useState<string>("all");
+  const [sortBy, setSortBy] = useState<"name" | "updated" | "stars" | "forks">("name");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const { toast } = useToast();
+
+  const uniqueLanguages = useMemo(() => {
+    const langs = new Set<string>();
+    repos.forEach((repo) => {
+      if (repo.language) langs.add(repo.language);
+    });
+    return Array.from(langs).sort();
+  }, [repos]);
 
   const getNextUrlFromLink = (linkHeader: string | null): string | null => {
     if (!linkHeader) return null;
@@ -110,9 +131,11 @@ export function Dashboard({ username, token, onLogout }: DashboardProps) {
     };
   }, [token]);
 
-  useEffect(() => {
+  const filteredRepos = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     let items = repos;
+
+    // Apply search filter
     if (q) {
       items = items.filter(
         (repo) =>
@@ -121,9 +144,61 @@ export function Dashboard({ username, token, onLogout }: DashboardProps) {
           repo.language?.toLowerCase().includes(q),
       );
     }
-    setFilteredRepos(items);
+
+    // Apply visibility filter
+    if (visibilityFilter === "public") {
+      items = items.filter((repo) => !repo.private);
+    } else if (visibilityFilter === "private") {
+      items = items.filter((repo) => repo.private);
+    }
+
+    // Apply fork filter
+    if (forkFilter === "source") {
+      items = items.filter((repo) => !repo.fork);
+    } else if (forkFilter === "forks") {
+      items = items.filter((repo) => repo.fork);
+    }
+
+    // Apply language filter
+    if (languageFilter !== "all") {
+      items = items.filter((repo) => repo.language === languageFilter);
+    }
+
+    // Apply sorting
+    items.sort((a, b) => {
+      let comparison = 0;
+      switch (sortBy) {
+        case "name":
+          comparison = a.name.localeCompare(b.name);
+          break;
+        case "updated":
+          comparison = new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime();
+          break;
+        case "stars":
+          comparison = a.stargazers_count - b.stargazers_count;
+          break;
+        case "forks":
+          comparison = a.forks_count - b.forks_count;
+          break;
+      }
+      return sortOrder === "asc" ? comparison : -comparison;
+    });
+
+    return items;
+  }, [searchQuery, repos, visibilityFilter, forkFilter, languageFilter, sortBy, sortOrder]);
+
+  useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, repos, userProfile]);
+  }, [searchQuery, visibilityFilter, forkFilter, languageFilter, sortBy, sortOrder]);
+
+  useEffect(() => {
+    const total = Math.ceil(filteredRepos.length / REPOS_PER_PAGE);
+    if (currentPage > total && total > 0) {
+      setCurrentPage(total);
+    } else if (total === 0 && currentPage !== 1) {
+      setCurrentPage(1);
+    }
+  }, [filteredRepos, currentPage]);
 
   const fetchUserProfile = async (signal?: AbortSignal) => {
     try {
@@ -184,7 +259,6 @@ export function Dashboard({ username, token, onLogout }: DashboardProps) {
         url = next;
       }
       setRepos(allRepos);
-      setFilteredRepos(allRepos);
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") return;
       toast({
@@ -271,7 +345,7 @@ export function Dashboard({ username, token, onLogout }: DashboardProps) {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 relative">
       <header className="border-b border-border/50 bg-card/80 backdrop-blur-xl sticky top-0 z-10 shadow-sm">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between gap-4">
@@ -376,6 +450,95 @@ export function Dashboard({ username, token, onLogout }: DashboardProps) {
                   </button>
                 )}
               </div>
+
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <Filter className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm font-medium text-muted-foreground">Filters:</span>
+                </div>
+
+                <Select value={visibilityFilter} onValueChange={(value: any) => setVisibilityFilter(value)}>
+                  <SelectTrigger className="w-[130px] h-9">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Repos</SelectItem>
+                    <SelectItem value="public">Public</SelectItem>
+                    <SelectItem value="private">Private</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Select value={forkFilter} onValueChange={(value: any) => setForkFilter(value)}>
+                  <SelectTrigger className="w-[130px] h-9">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Types</SelectItem>
+                    <SelectItem value="source">Source</SelectItem>
+                    <SelectItem value="forks">Forks</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Select value={languageFilter} onValueChange={setLanguageFilter}>
+                  <SelectTrigger className="w-[150px] h-9">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Languages</SelectItem>
+                    {uniqueLanguages.map((lang) => (
+                      <SelectItem key={lang} value={lang}>
+                        {lang}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <div className="h-6 w-px bg-border" />
+
+                <div className="flex items-center gap-2">
+                  <ArrowUpDown className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm font-medium text-muted-foreground">Sort:</span>
+                </div>
+
+                <Select value={sortBy} onValueChange={(value: any) => setSortBy(value)}>
+                  <SelectTrigger className="w-[140px] h-9">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="name">Alphabetical</SelectItem>
+                    <SelectItem value="updated">Last Updated</SelectItem>
+                    <SelectItem value="stars">Most Stars</SelectItem>
+                    <SelectItem value="forks">Most Forks</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Select value={sortOrder} onValueChange={(value: any) => setSortOrder(value)}>
+                  <SelectTrigger className="w-[120px] h-9">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="asc">Ascending</SelectItem>
+                    <SelectItem value="desc">Descending</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                {(visibilityFilter !== "all" || forkFilter !== "all" || languageFilter !== "all" || sortBy !== "name" || sortOrder !== "asc") && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setVisibilityFilter("all");
+                      setForkFilter("all");
+                      setLanguageFilter("all");
+                      setSortBy("name");
+                      setSortOrder("asc");
+                    }}
+                    className="h-9 text-xs"
+                  >
+                    Reset
+                  </Button>
+                )}
+              </div>
             </div>
 
             {filteredRepos.length === 0 ? (
@@ -385,19 +548,24 @@ export function Dashboard({ username, token, onLogout }: DashboardProps) {
                   No results found
                 </h2>
                 <p className="text-muted-foreground">
-                  Try adjusting your search
+                  Try adjusting your search or filters
                 </p>
                 <Button
                   variant="outline"
-                  onClick={() => setSearchQuery("")}
+                  onClick={() => {
+                    setSearchQuery("");
+                    setVisibilityFilter("all");
+                    setForkFilter("all");
+                    setLanguageFilter("all");
+                  }}
                   className="mt-4"
                 >
-                  Clear search
+                  Clear all filters
                 </Button>
               </div>
             ) : (
               <>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-8">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-8 auto-rows-fr">
                   {paginatedRepos.map((repo) => (
                     <RepoCard
                       key={repo.id}

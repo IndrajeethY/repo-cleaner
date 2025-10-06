@@ -11,6 +11,26 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
+import { z } from "zod";
+
+const credentialsSchema = z.object({
+  username: z
+    .string()
+    .trim()
+    .min(1, { message: "Username cannot be empty" })
+    .max(39, { message: "Username must be less than 39 characters" })
+    .regex(/^[a-zA-Z0-9-]+$/, {
+      message: "Username can only contain alphanumeric characters and hyphens",
+    }),
+  token: z
+    .string()
+    .trim()
+    .min(1, { message: "Token cannot be empty" })
+    .max(255, { message: "Token must be less than 255 characters" })
+    .regex(/^(ghp_|github_pat_)[a-zA-Z0-9_]+$/, {
+      message: "Invalid GitHub token format. Must start with 'ghp_' or 'github_pat_'",
+    }),
+});
 
 interface SetupPageProps {
   onSetupComplete: (username: string, token: string) => void;
@@ -19,23 +39,44 @@ interface SetupPageProps {
 export function SetupPage({ onSetupComplete }: SetupPageProps) {
   const [username, setUsername] = useState("");
   const [token, setToken] = useState("");
+  const [errors, setErrors] = useState<{ username?: string; token?: string }>({});
   const { toast } = useToast();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setErrors({});
 
-    if (!username.trim() || !token.trim()) {
+    // Validate inputs
+    const result = credentialsSchema.safeParse({
+      username: username,
+      token: token,
+    });
+
+    if (!result.success) {
+      const fieldErrors: { username?: string; token?: string } = {};
+      result.error.errors.forEach((err) => {
+        if (err.path[0] === "username") {
+          fieldErrors.username = err.message;
+        } else if (err.path[0] === "token") {
+          fieldErrors.token = err.message;
+        }
+      });
+      setErrors(fieldErrors);
+      
       toast({
-        title: "Missing credentials",
-        description: "Please enter both username and token",
+        title: "Validation Error",
+        description: "Please check your inputs and try again",
         variant: "destructive",
       });
       return;
     }
 
-    localStorage.setItem("github_username", username);
-    localStorage.setItem("github_token", token);
-    onSetupComplete(username, token);
+    // Use validated and trimmed values
+    const validatedData = result.data;
+    
+    localStorage.setItem("github_username", validatedData.username);
+    localStorage.setItem("github_token", validatedData.token);
+    onSetupComplete(validatedData.username, validatedData.token);
 
     toast({
       title: "Credentials saved",
@@ -44,8 +85,8 @@ export function SetupPage({ onSetupComplete }: SetupPageProps) {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-background via-background to-muted/20">
-      <Card className="w-full max-w-md shadow-lg border-border/50">
+    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-background via-background to-muted/20 relative">
+      <Card className="w-full max-w-md shadow-lg border-border/50 animate-fade-in">
         <CardHeader className="space-y-3 text-center">
           <img
             src={icon}
@@ -70,8 +111,12 @@ export function SetupPage({ onSetupComplete }: SetupPageProps) {
                 placeholder="octocat"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                className="h-11 transition-all"
+                className={`h-11 transition-all ${errors.username ? "border-destructive" : ""}`}
+                maxLength={39}
               />
+              {errors.username && (
+                <p className="text-xs text-destructive">{errors.username}</p>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="token" className="text-sm font-medium">
@@ -83,12 +128,16 @@ export function SetupPage({ onSetupComplete }: SetupPageProps) {
                 placeholder="ghp_xxxxxxxxxxxx"
                 value={token}
                 onChange={(e) => setToken(e.target.value)}
-                className="h-11 transition-all"
+                className={`h-11 transition-all ${errors.token ? "border-destructive" : ""}`}
+                maxLength={255}
               />
+              {errors.token && (
+                <p className="text-xs text-destructive">{errors.token}</p>
+              )}
               <p className="text-xs text-muted-foreground">
                 Need a token?{" "}
                 <a
-                  href="https://github.com/settings/tokens/new"
+                  href="https://github.com/settings/tokens/new?scopes=repo,delete_repo"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-primary hover:text-accent transition-colors underline"
