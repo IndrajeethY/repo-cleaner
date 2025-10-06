@@ -28,7 +28,8 @@ const credentialsSchema = z.object({
     .min(1, { message: "Token cannot be empty" })
     .max(255, { message: "Token must be less than 255 characters" })
     .regex(/^(ghp_|github_pat_)[a-zA-Z0-9_]+$/, {
-      message: "Invalid GitHub token format. Must start with 'ghp_' or 'github_pat_'",
+      message:
+        "Invalid GitHub token format. Must start with 'ghp_' or 'github_pat_'",
     }),
 });
 
@@ -39,7 +40,9 @@ interface SetupPageProps {
 export function SetupPage({ onSetupComplete }: SetupPageProps) {
   const [username, setUsername] = useState("");
   const [token, setToken] = useState("");
-  const [errors, setErrors] = useState<{ username?: string; token?: string }>({});
+  const [errors, setErrors] = useState<{ username?: string; token?: string }>(
+    {},
+  );
   const { toast } = useToast();
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -62,7 +65,7 @@ export function SetupPage({ onSetupComplete }: SetupPageProps) {
         }
       });
       setErrors(fieldErrors);
-      
+
       toast({
         title: "Validation Error",
         description: "Please check your inputs and try again",
@@ -73,7 +76,7 @@ export function SetupPage({ onSetupComplete }: SetupPageProps) {
 
     // Use validated and trimmed values
     const validatedData = result.data;
-    
+
     localStorage.setItem("github_username", validatedData.username);
     localStorage.setItem("github_token", validatedData.token);
     onSetupComplete(validatedData.username, validatedData.token);

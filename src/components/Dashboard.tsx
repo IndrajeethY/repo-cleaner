@@ -1,6 +1,15 @@
 import { useEffect, useState, useMemo } from "react";
 import icon from "@/assets/icon.png";
-import { Github, LogOut, Loader2, Sparkles, Search, X, Filter, ArrowUpDown } from "lucide-react";
+import {
+  Github,
+  LogOut,
+  Loader2,
+  Sparkles,
+  Search,
+  X,
+  Filter,
+  ArrowUpDown,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
@@ -76,10 +85,16 @@ export function Dashboard({ username, token, onLogout }: DashboardProps) {
   const [deleteRepo, setDeleteRepo] = useState<Repository | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [visibilityFilter, setVisibilityFilter] = useState<"all" | "public" | "private">("all");
-  const [forkFilter, setForkFilter] = useState<"all" | "source" | "forks">("all");
+  const [visibilityFilter, setVisibilityFilter] = useState<
+    "all" | "public" | "private"
+  >("all");
+  const [forkFilter, setForkFilter] = useState<"all" | "source" | "forks">(
+    "all",
+  );
   const [languageFilter, setLanguageFilter] = useState<string>("all");
-  const [sortBy, setSortBy] = useState<"name" | "updated" | "stars" | "forks">("name");
+  const [sortBy, setSortBy] = useState<"name" | "updated" | "stars" | "forks">(
+    "name",
+  );
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const { toast } = useToast();
 
@@ -172,7 +187,8 @@ export function Dashboard({ username, token, onLogout }: DashboardProps) {
           comparison = a.name.localeCompare(b.name);
           break;
         case "updated":
-          comparison = new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime();
+          comparison =
+            new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime();
           break;
         case "stars":
           comparison = a.stargazers_count - b.stargazers_count;
@@ -185,11 +201,26 @@ export function Dashboard({ username, token, onLogout }: DashboardProps) {
     });
 
     return items;
-  }, [searchQuery, repos, visibilityFilter, forkFilter, languageFilter, sortBy, sortOrder]);
+  }, [
+    searchQuery,
+    repos,
+    visibilityFilter,
+    forkFilter,
+    languageFilter,
+    sortBy,
+    sortOrder,
+  ]);
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, visibilityFilter, forkFilter, languageFilter, sortBy, sortOrder]);
+  }, [
+    searchQuery,
+    visibilityFilter,
+    forkFilter,
+    languageFilter,
+    sortBy,
+    sortOrder,
+  ]);
 
   useEffect(() => {
     const total = Math.ceil(filteredRepos.length / REPOS_PER_PAGE);
@@ -454,10 +485,15 @@ export function Dashboard({ username, token, onLogout }: DashboardProps) {
               <div className="flex flex-wrap items-center gap-3">
                 <div className="flex items-center gap-2">
                   <Filter className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-sm font-medium text-muted-foreground">Filters:</span>
+                  <span className="text-sm font-medium text-muted-foreground">
+                    Filters:
+                  </span>
                 </div>
 
-                <Select value={visibilityFilter} onValueChange={(value: any) => setVisibilityFilter(value)}>
+                <Select
+                  value={visibilityFilter}
+                  onValueChange={(value: any) => setVisibilityFilter(value)}
+                >
                   <SelectTrigger className="w-[130px] h-9">
                     <SelectValue />
                   </SelectTrigger>
@@ -468,7 +504,10 @@ export function Dashboard({ username, token, onLogout }: DashboardProps) {
                   </SelectContent>
                 </Select>
 
-                <Select value={forkFilter} onValueChange={(value: any) => setForkFilter(value)}>
+                <Select
+                  value={forkFilter}
+                  onValueChange={(value: any) => setForkFilter(value)}
+                >
                   <SelectTrigger className="w-[130px] h-9">
                     <SelectValue />
                   </SelectTrigger>
@@ -479,7 +518,10 @@ export function Dashboard({ username, token, onLogout }: DashboardProps) {
                   </SelectContent>
                 </Select>
 
-                <Select value={languageFilter} onValueChange={setLanguageFilter}>
+                <Select
+                  value={languageFilter}
+                  onValueChange={setLanguageFilter}
+                >
                   <SelectTrigger className="w-[150px] h-9">
                     <SelectValue />
                   </SelectTrigger>
@@ -497,10 +539,15 @@ export function Dashboard({ username, token, onLogout }: DashboardProps) {
 
                 <div className="flex items-center gap-2">
                   <ArrowUpDown className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-sm font-medium text-muted-foreground">Sort:</span>
+                  <span className="text-sm font-medium text-muted-foreground">
+                    Sort:
+                  </span>
                 </div>
 
-                <Select value={sortBy} onValueChange={(value: any) => setSortBy(value)}>
+                <Select
+                  value={sortBy}
+                  onValueChange={(value: any) => setSortBy(value)}
+                >
                   <SelectTrigger className="w-[140px] h-9">
                     <SelectValue />
                   </SelectTrigger>
@@ -512,7 +559,10 @@ export function Dashboard({ username, token, onLogout }: DashboardProps) {
                   </SelectContent>
                 </Select>
 
-                <Select value={sortOrder} onValueChange={(value: any) => setSortOrder(value)}>
+                <Select
+                  value={sortOrder}
+                  onValueChange={(value: any) => setSortOrder(value)}
+                >
                   <SelectTrigger className="w-[120px] h-9">
                     <SelectValue />
                   </SelectTrigger>
@@ -522,7 +572,11 @@ export function Dashboard({ username, token, onLogout }: DashboardProps) {
                   </SelectContent>
                 </Select>
 
-                {(visibilityFilter !== "all" || forkFilter !== "all" || languageFilter !== "all" || sortBy !== "name" || sortOrder !== "asc") && (
+                {(visibilityFilter !== "all" ||
+                  forkFilter !== "all" ||
+                  languageFilter !== "all" ||
+                  sortBy !== "name" ||
+                  sortOrder !== "asc") && (
                   <Button
                     variant="ghost"
                     size="sm"

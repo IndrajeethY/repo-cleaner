@@ -30,7 +30,9 @@ interface RepoCardProps {
 }
 
 export function RepoCard({ repo, onDelete }: RepoCardProps) {
-  const lastUpdated = formatDistanceToNow(new Date(repo.updated_at), { addSuffix: true });
+  const lastUpdated = formatDistanceToNow(new Date(repo.updated_at), {
+    addSuffix: true,
+  });
 
   return (
     <Card className="group hover:shadow-lg transition-all duration-300 hover:border-primary/50 bg-card/50 backdrop-blur-sm animate-fade-in flex flex-col h-full">
@@ -60,7 +62,10 @@ export function RepoCard({ repo, onDelete }: RepoCardProps) {
                 {repo.private ? "Private" : "Public"}
               </Badge>
               {repo.fork && (
-                <Badge variant="outline" className="text-xs border-accent/30 text-accent">
+                <Badge
+                  variant="outline"
+                  className="text-xs border-accent/30 text-accent"
+                >
                   Fork
                 </Badge>
               )}
